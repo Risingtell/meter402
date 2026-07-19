@@ -1,6 +1,6 @@
 {
   "name": "meter402",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Per-second metered & streaming settlement for x402 — pay-as-you-consume billing, signed receipts, and an on-chain verifier that re-derives every total from the chain.",
   "type": "module",
   "license": "MIT",

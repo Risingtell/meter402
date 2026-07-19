@@ -94,6 +94,8 @@ interface RawLog {
 const toHexBlock = (n: number) => "0x" + n.toString(16);
 /** Last 20 bytes of a 32-byte topic word → lowercase 0x address. */
 const topicToAddress = (topic: string) => ("0x" + topic.slice(-40)).toLowerCase();
+/** Left-pad a 20-byte address into a 32-byte indexed-topic word. */
+const addressToTopic = (addr: string) => "0x" + addr.toLowerCase().replace(/^0x/, "").padStart(64, "0");
 
 function defaultRpc(url: string): EvmRpc {
   return async (method, params) => {
@@ -127,11 +129,21 @@ export function createEvmVerifier(opts: EvmVerifierOptions): VerifierAdapter {
           ? Number(BigInt((await rpc("eth_blockNumber", [])) as string))
           : opts.toBlock;
 
+      // Filter server-side on the indexed `from` topic (any of our agents) — on a busy chain,
+      // scanning every Transfer on the token can exceed the RPC's max-results cap; this keeps
+      // the query scoped to only the transfers that could possibly be one of our settlements.
+      const agentTopics = [...agents].map(addressToTopic);
+
       const logs: RawLog[] = [];
       for (let start = from; start <= to; start += chunk) {
         const end = Math.min(start + chunk - 1, to);
         const page = (await rpc("eth_getLogs", [
-          { address: token, topics: [TRANSFER_TOPIC], fromBlock: toHexBlock(start), toBlock: toHexBlock(end) },
+          {
+            address: token,
+            topics: [TRANSFER_TOPIC, agentTopics],
+            fromBlock: toHexBlock(start),
+            toBlock: toHexBlock(end),
+          },
         ])) as RawLog[];
         logs.push(...page);
       }
