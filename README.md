@@ -106,6 +106,17 @@ adapter works with any provider — and the aggregation logic is unit-testable w
 A Casper reference verifier lives in the [`sluice`](https://github.com/Risingtell/sluice) project
 this core was extracted from.
 
+**Verified against live chains, not just fixtures:**
+
+- **OKX X Layer mainnet** (`eip155:196`) — [`examples/verify-xlayer.ts`](./examples/verify-xlayer.ts)
+  re-derives the real USD₮0 settlement history of a live [OKX.AI](https://www.okx.ai) buyer agent:
+  34 settlements / $1.082 across two live services ([Argus](https://github.com/Risingtell/argus)
+  ASP #5246 and [VigilOK](https://github.com/Risingtell/vigilok) ASP #6032). Run it yourself and
+  check any row on [OKLink](https://www.oklink.com/x-layer).
+- **Arc testnet** (`eip155:5042002`) — reconstructed a known x402 settlement from the token's
+  Transfer ledger; that live run also caught (and fixed, in v0.1.1) the busy-chain
+  max-results pitfall the `chunkSize` + agent-topic filtering now handle.
+
 ## Roadmap
 
 - [x] Generic EVM verifier adapter (read ERC-20 transfers → re-derive totals)
