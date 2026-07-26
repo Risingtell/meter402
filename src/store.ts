@@ -36,4 +36,13 @@ export class MemoryStore implements MeterStore {
   listSessions(): Session[] {
     return [...this.sessions.values()];
   }
+
+  updateEventsByBatchId(batchId: string, patch: { txHash: string; explorerUrl: string }): void {
+    for (const e of this.events) {
+      if (e.batchId === batchId) {
+        e.txHash = patch.txHash;
+        e.explorerUrl = patch.explorerUrl;
+      }
+    }
+  }
 }

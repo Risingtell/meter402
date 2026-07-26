@@ -1,6 +1,6 @@
 {
   "name": "meter402",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Per-second metered & streaming settlement for x402 — pay-as-you-consume billing, signed receipts, and an on-chain verifier that re-derives every total from the chain.",
   "type": "module",
   "license": "MIT",
@@ -22,7 +22,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
     "example:server": "tsx examples/server.ts",
-    "verify:evm": "tsx scripts/verify-evm.ts"
+    "verify:evm": "tsx scripts/verify-evm.ts",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.0",

@@ -71,6 +71,38 @@ await server.connect(new StdioServerTransport());
 The agent decides, tick by tick, whether the next chunk is worth paying for — and records *why* it
 closed the gate. That autonomous "not worth it → stop" decision is the interesting part.
 
+## Batched settlement (defer gas, keep instant confirmation)
+
+By default every tick is its own on-chain settlement — simple, but on a live chain each one pays
+gas, and gas can dwarf a sub-cent tick. `BatchSettlementProvider` wraps any `SettlementProvider` so
+ticks still confirm instantly (the agent never waits), but the real on-chain transfer only happens
+once a threshold is crossed — same pattern Circle Nanopayments/Gateway proved out for USDC, just not
+tied to Circle's ledger or any one chain.
+
+```ts
+import { BatchSettlementProvider, MemoryStore, MockSettlementProvider, StreamingMeter } from "meter402";
+
+const store = new MemoryStore([/* streams */]);
+const meter = new StreamingMeter(store, { payTo: "0xTreasury", maxTickSeconds: 10 });
+
+const chain = new MockSettlementProvider(); // swap for a real x402/EVM facilitator when live
+const batched = new BatchSettlementProvider(chain, store, {
+  maxTicks: 20,       // flush after 20 ticks
+  maxAmount: "50000", // or once accrued value reaches this many smallest-units
+  maxWaitMs: 60_000,  // or once the oldest unflushed tick is this old
+});
+
+// use `batched` wherever you'd pass `provider` to createMeterRouter / createMeterMcpServer
+```
+
+Grouping is per `(agent, payTo, asset)` — the only ticks that can legally collapse into one
+transfer. Ticks settled before a flush get a `pending:<batchId>` placeholder txHash in the
+`/impact` feed; once the batch flushes, every tick sharing that `batchId` is reconciled onto the
+one real tx hash (needs `MeterStore.updateEventsByBatchId`, which `MemoryStore` implements). If the
+underlying settlement call fails, nothing accrued is lost — the batch stays intact for the next
+tick or an explicit `flushAll()` to retry. Call `flushAll()` on session close / shutdown so a
+provider is never left holding delivered time that never got paid.
+
 ## Going live
 
 Swap `MockSettlementProvider` for a real x402 facilitator that settles an EIP-3009 /
@@ -123,6 +155,12 @@ this core was extracted from.
 - [ ] `bin/meter402-mcp` stdio entrypoint for drop-in agent configs
 - [ ] Persistent store adapter (Postgres) alongside `MemoryStore`
 - [ ] Budget/policy guardrails on the session (hard cap + rate ceiling)
+- [x] Batched settlement mode (`BatchSettlementProvider`): instant per-tick confirmation, deferred
+  and batched on-chain settlement, chain-agnostic instead of locked to Circle's ledger — see
+  "Batched settlement" above.
+- [ ] Per-chain gasless-authorization adapters to pair with batching (EIP-3009 on EVM; no
+  off-the-shelf equivalent confirmed yet for non-EVM chains like Casper — verify before building
+  rather than assume one exists).
 
 ## License
 

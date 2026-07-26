@@ -48,6 +48,8 @@ export interface SettlementResult {
   txHash: string;
   explorerUrl: string;
   network: string;
+  /** Set by BatchSettlementProvider — ticks sharing a batchId share one deferred on-chain transfer. */
+  batchId?: string;
 }
 
 export class StreamingMeter {
@@ -108,6 +110,7 @@ export class StreamingMeter {
       txHash: result.txHash,
       explorerUrl: result.explorerUrl,
       settledAt: quote.at,
+      batchId: result.batchId,
     };
     this.store.addEvent(event);
 

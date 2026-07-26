@@ -65,6 +65,9 @@ export interface SettlementEvent {
   /** Deep link to a block explorer when live; empty in MOCK mode. */
   explorerUrl: string;
   settledAt: number;
+  /** Set when this tick was settled via BatchSettlementProvider — ticks sharing a batchId
+   *  share one real on-chain transfer, reconciled onto every tick's event once the batch flushes. */
+  batchId?: string;
 }
 
 /** A recorded autonomous decision: an agent that closed its own stream, and why. */
@@ -106,4 +109,8 @@ export interface MeterStore {
   addEvent(e: SettlementEvent): void;
   listEvents(): SettlementEvent[];
   listSessions(): Session[];
+  /** Optional: patch every event sharing a batchId once BatchSettlementProvider flushes it onto
+   *  a real on-chain transfer. Stores that don't implement this just keep each tick's pending
+   *  placeholder txHash — the sum-of-amounts proof still holds, only the per-tick hash link doesn't. */
+  updateEventsByBatchId?(batchId: string, patch: { txHash: string; explorerUrl: string }): void;
 }
